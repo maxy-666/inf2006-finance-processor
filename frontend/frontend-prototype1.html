@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Upload Document → AWS Textract Viewer</title>
+  <style>
+    body { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Arial; max-width:1000px; margin:2rem auto; padding:1rem; }
+    .card { border:1px solid #e5e7eb; padding:1rem; border-radius:8px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+    table { width:100%; border-collapse:collapse; margin-top:1rem; }
+    th, td { padding:8px; border-bottom:1px solid #eee; text-align:left; }
+    .muted { color:#6b7280; }
+    #preview { max-width:100%; margin-top:10px; }
+    #loader { display:none; }
+  </style>
+</head>
+<body>
+  <h1>AWS Textract — Upload & View OCR</h1>
+  <div class="card">
+    <p class="muted">Choose an image (PNG/JPG) for synchronous OCR. PDFs are uploaded but require async processing (not handled here).</p>
+    <form id="uploadForm">
+      <input type="file" id="fileInput" name="document" accept="image/*,application/pdf" required />
+      <div style="margin-top:8px">
+        <button type="submit">Upload & Extract</button>
+        <span id="loader">Processing…</span>
+      </div>
+    </form>
+
+    <img id="preview" alt="preview" />
+
+    <div id="result"></div>
+  </div>
+
+  <script>
+    const API_ENDPOINT = '/upload.php'; 
+    // 👆 Replace this with your backend endpoint (could be PHP, Node, Flask, or AWS API Gateway + Lambda)
+
+    const form = document.getElementById('uploadForm');
+    const fileInput = document.getElementById('fileInput');
+    const preview = document.getElementById('preview');
+    const resultDiv = document.getElementById('result');
+    const loader = document.getElementById('loader');
+
+    fileInput.addEventListener('change', (e) => {
+      const f = e.target.files[0];
+      if (!f) return;
+      if (f.type.startsWith('image/')) {
+        const url = URL.createObjectURL(f);
+        preview.src = url;
+        preview.style.display = 'block';
+      } else {
+        preview.style.display = 'none';
+      }
+    });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const f = fileInput.files[0];
+      if (!f) return alert('Choose a file first');
+
+      loader.style.display = 'inline';
+      resultDiv.innerHTML = '';
+
+      const formData = new FormData();
+      formData.append('document', f);
+
+      try {
+        const res = await fetch(API_ENDPOINT, { method: 'POST', body: formData });
+        const json = await res.json();
+        loader.style.display = 'none';
+
+        if (!res.ok) {
+          resultDiv.innerHTML = `<pre style="color:red">${JSON.stringify(json, null, 2)}</pre>`;
+          return;
+        }
+
+        // If Textract returned lines, render them in a table
+        if (json.lines && Array.isArray(json.lines)) {
+          let html = `<h3>Detected lines</h3>`;
+          html += `<table><thead><tr><th>#</th><th>Text</th><th>Confidence</th></tr></thead><tbody>`;
+          json.lines.forEach((l, i) => {
+            html += `<tr><td>${i+1}</td><td>${escapeHtml(l.text)}</td><td>${l.confidence ?? ''}</td></tr>`;
+          });
+          html += `</tbody></table>`;
+          resultDiv.innerHTML = html;
+        } else if (json.message) {
+          resultDiv.innerHTML = `<pre>${escapeHtml(json.message)}</pre>`;
+        } else {
+          resultDiv.innerHTML = `<pre>${escapeHtml(JSON.stringify(json, null, 2))}</pre>`;
+        }
+
+      } catch (err) {
+        loader.style.display = 'none';
+        resultDiv.innerHTML = `<pre style="color:red">${err}</pre>`;
+      }
+    });
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/[&<>"']/g, function (c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[c]; });
+    }
+  </script>
+
+  <hr style="margin-top:2rem">
+  <div class="muted">Notes: This is a minimal demo. For production: add authentication, file type/size limits, and server-side validation. To process invoices/tables more accurately, use Textract's AnalyzeDocument with TABLES + FORMS.</div>
+</body>
+</html>
