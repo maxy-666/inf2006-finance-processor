@@ -1,37 +1,63 @@
-# Local .terraform directories
+# ------------------------------------
+# 1. CRITICAL: Terraform and Cloud Files
+# ------------------------------------
+# Ignore the local .terraform directory where provider binaries and modules are downloaded.
 .terraform/
 
-# .tfstate files
+# Ignore all Terraform state files and backups (CRITICAL FOR SECURITY).
 *.tfstate
 *.tfstate.*
 
-# Crash log files
-crash.log
-crash.*.log
+# Ignore transient lock info files created by terraform apply.
+.terraform.tfstate.lock.info
 
-# Exclude all .tfvars files, which are likely to contain sensitive data, such as
-# password, private keys, and other secrets. These should not be part of version 
-# control as they are data points which are potentially sensitive and subject 
-# to change depending on the environment.
+# Exclude all tfvars files which likely contain sensitive data (passwords, keys).
 *.tfvars
 *.tfvars.json
 
-# Ignore override files as they are usually used to override resources locally and so
-# are not checked in
+# Ignore temporary plan files created by 'terraform plan -out=...'.
+*.tfplan
+
+# Ignore local crash log files.
+crash.log
+crash.*.log
+
+# Ignore override files used for local testing/debugging.
 override.tf
 override.tf.json
 *_override.tf
 *_override.tf.json
 
-# Ignore transient lock info files created by terraform apply
-.terraform.tfstate.lock.info
-
-# Include override files you do wish to add to version control using negated pattern
-# !example_override.tf
-
-# Include tfplan files to ignore the plan output of command: terraform plan -out=tfplan
-# example: *tfplan*
-
-# Ignore CLI configuration files
+# Ignore CLI configuration files.
 .terraformrc
 terraform.rc
+
+
+# ------------------------------------
+# 2. Programming Language & Dependency Exclusions
+# ------------------------------------
+# Node / JavaScript / Front-end (FE)
+# Dependency folder (can be large).
+node_modules/
+
+# Ignore common build/output directories for front-end frameworks.
+/frontend/dist/
+/frontend/build/
+/frontend/out/
+
+# Python / Lambda Exclusions
+# Bytecode and cache files.
+__pycache__/
+*.pyc
+*.pyo
+
+# Ignore Python virtual environments if stored in the root.
+/venv/
+.env
+
+
+# ------------------------------------
+# 3. Operating System Files
+# ------------------------------------
+.DS_Store # macOS directory metadata
+Thumbs.db # Windows thumbnail cache
