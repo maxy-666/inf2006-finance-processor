@@ -1,10 +1,11 @@
 # backend-iac/s3.tf
 
 resource "aws_s3_bucket" "documents_bucket" {
-  bucket = "inf2006-financial-docs-${random_id.bucket_suffix.hex}" # Creates a unique bucket name
+  bucket = "inf2006-financial-docs-${random_id.bucket_suffix.hex}"
+  # This new line tells Terraform to delete the bucket even if it has files in it.
+  force_destroy = true
 }
 
-# New, separate resource for managing S3 bucket versioning
 resource "aws_s3_bucket_versioning" "documents_bucket_versioning" {
   bucket = aws_s3_bucket.documents_bucket.id
   versioning_configuration {
@@ -12,7 +13,6 @@ resource "aws_s3_bucket_versioning" "documents_bucket_versioning" {
   }
 }
 
-# Add a random suffix to ensure the bucket name is globally unique
 resource "random_id" "bucket_suffix" {
   byte_length = 8
 }
