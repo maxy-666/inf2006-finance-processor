@@ -2,8 +2,19 @@
 
 resource "aws_s3_bucket" "documents_bucket" {
   bucket = "inf2006-financial-docs-${random_id.bucket_suffix.hex}"
-  # This new line tells Terraform to delete the bucket even if it has files in it.
   force_destroy = true
+}
+
+# Add this new resource to configure CORS on the bucket
+resource "aws_s3_bucket_cors_configuration" "documents_bucket_cors" {
+  bucket = aws_s3_bucket.documents_bucket.id
+
+  cors_rule {
+    allowed_headers = ["*"]
+    allowed_methods = ["PUT", "POST", "GET"]
+    allowed_origins = ["*"]
+    expose_headers  = ["ETag"]
+  }
 }
 
 resource "aws_s3_bucket_versioning" "documents_bucket_versioning" {
