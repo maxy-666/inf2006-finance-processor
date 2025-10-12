@@ -10,8 +10,9 @@
     table { width:100%; border-collapse:collapse; margin-top:1rem; }
     th, td { padding:8px; border-bottom:1px solid #eee; text-align:left; }
     .muted { color:#6b7280; }
-    #preview { max-width:100%; margin-top:10px; }
+    #preview { max-width:100%; margin-top:10px; border:1px solid #ccc; }
     #loader { display:none; }
+    pre { background-color: #f4f4f4; padding: 10px; border-radius: 4px; white-space: pre-wrap; word-wrap: break-word; }
   </style>
 </head>
 <body>
@@ -26,14 +27,15 @@
       </div>
     </form>
 
-    <img id="preview" alt="preview" />
+    <img id="preview" alt="Image preview" style="display:none;" />
 
     <div id="result"></div>
   </div>
 
   <script>
-    const API_ENDPOINT = '/upload.php'; 
-    // 👆 Replace this with your backend endpoint (could be PHP, Node, Flask, or AWS API Gateway + Lambda)
+    // === PASTE YOUR API URL HERE ===
+    const API_ENDPOINT = 'https://yqdxpe6vel.execute-api.us-east-1.amazonaws.com/';
+    // ===============================
 
     const form = document.getElementById('uploadForm');
     const fileInput = document.getElementById('fileInput');
@@ -55,50 +57,41 @@
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const f = fileInput.files[0];
-      if (!f) return alert('Choose a file first');
+      const file = fileInput.files[0];
+      if (!file) return alert('Choose a file first');
 
       loader.style.display = 'inline';
-      resultDiv.innerHTML = '';
-
-      const formData = new FormData();
-      formData.append('document', f);
+      resultDiv.innerHTML = '<pre>1. Requesting secure upload link...</pre>';
 
       try {
-        const res = await fetch(API_ENDPOINT, { method: 'POST', body: formData });
-        const json = await res.json();
+        const getUrlResponse = await fetch(`${API_ENDPOINT}/generate-upload-url`, { method: 'GET' });
+        
+        if (!getUrlResponse.ok) {
+            const errorText = await getUrlResponse.text();
+            throw new Error(`Could not get an upload URL. Status: ${getUrlResponse.status}. Message: ${errorText}`);
+        }
+
+        const { uploadURL } = await getUrlResponse.json();
+        resultDiv.innerHTML += '<pre>2. Received upload link. Now uploading file directly to S3...</pre>';
+
+        const uploadResponse = await fetch(uploadURL, {
+            method: 'PUT',
+            body: file,
+            headers: { 'Content-Type': file.type }
+        });
+
+        if (!uploadResponse.ok) {
+            throw new Error('S3 upload failed.');
+        }
+
         loader.style.display = 'none';
-
-        if (!res.ok) {
-          resultDiv.innerHTML = `<pre style="color:red">${JSON.stringify(json, null, 2)}</pre>`;
-          return;
-        }
-
-        // If Textract returned lines, render them in a table
-        if (json.lines && Array.isArray(json.lines)) {
-          let html = `<h3>Detected lines</h3>`;
-          html += `<table><thead><tr><th>#</th><th>Text</th><th>Confidence</th></tr></thead><tbody>`;
-          json.lines.forEach((l, i) => {
-            html += `<tr><td>${i+1}</td><td>${escapeHtml(l.text)}</td><td>${l.confidence ?? ''}</td></tr>`;
-          });
-          html += `</tbody></table>`;
-          resultDiv.innerHTML = html;
-        } else if (json.message) {
-          resultDiv.innerHTML = `<pre>${escapeHtml(json.message)}</pre>`;
-        } else {
-          resultDiv.innerHTML = `<pre>${escapeHtml(JSON.stringify(json, null, 2))}</pre>`;
-        }
-
+        resultDiv.innerHTML += `<pre style="color:green; font-weight:bold;">3. Upload successful! Backend processing has been triggered. Check CloudWatch logs for OCR results.</pre>`;
+        
       } catch (err) {
         loader.style.display = 'none';
-        resultDiv.innerHTML = `<pre style="color:red">${err}</pre>`;
+        resultDiv.innerHTML = `<pre style="color:red">Error: ${err.message}</pre>`;
       }
     });
-
-    function escapeHtml(str) {
-      if (!str) return '';
-      return str.replace(/[&<>"']/g, function (c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[c]; });
-    }
   </script>
 
   <hr style="margin-top:2rem">
