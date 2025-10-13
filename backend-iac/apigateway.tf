@@ -8,7 +8,7 @@ resource "aws_apigatewayv2_api" "http_api" {
   # This block is the fix
   cors_configuration {
     allow_origins = ["*"]
-    allow_methods = ["GET", "POST", "PUT"]
+    allow_methods = ["GET", "POST", "PUT", "OPTIONS"]
     allow_headers = ["*"]
   }
 }
