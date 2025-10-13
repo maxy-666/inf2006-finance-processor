@@ -9,7 +9,6 @@ from botocore.exceptions import ClientError
 s3_client = boto3.client('s3')
 BUCKET_NAME = os.environ.get('BUCKET_NAME')
 
-# Define headers here to be reused
 CORS_HEADERS = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
@@ -20,20 +19,24 @@ def lambda_handler(event, context):
     """
     Generates a pre-signed URL for uploading a file to S3.
     """
-    object_key = f"uploads/{uuid.uuid4()}"
-
     try:
-        # Check if the bucket name is configured
-        if not BUCKET_NAME:
-            raise ValueError("BUCKET_NAME environment variable is not set.")
+        # --- THIS IS THE CHANGE ---
+        # Get the content type from the query string sent by the front-end.
+        query_params = event.get('queryStringParameters', {})
+        content_type = query_params.get('contentType')
+
+        if not content_type:
+            raise ValueError("contentType query parameter is required.")
+        # --------------------------
+
+        object_key = f"uploads/{uuid.uuid4()}"
 
         presigned_url = s3_client.generate_presigned_url(
             'put_object',
-            Params={'Bucket': BUCKET_NAME, 'Key': object_key},
+            Params={'Bucket': BUCKET_NAME, 'Key': object_key, 'ContentType': content_type},
             ExpiresIn=600
         )
-
-        # Success response
+        
         return {
             'statusCode': 200,
             'headers': CORS_HEADERS,
@@ -42,8 +45,6 @@ def lambda_handler(event, context):
 
     except Exception as e:
         print(f"Error generating pre-signed URL: {e}")
-        # --- THIS IS THE CRUCIAL FIX ---
-        # Now, the error response also includes the CORS headers.
         return {
             'statusCode': 500,
             'headers': CORS_HEADERS,

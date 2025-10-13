@@ -1,11 +1,10 @@
 # This resource defines the multi-step workflow for processing a document.
-resource "aws_sfn_state_machine" "document_processing_workflow" { # CORRECTED RESOURCE NAME
+resource "aws_sfn_state_machine" "document_processing_workflow" {
   name     = "FinancialDocumentProcessingWorkflow"
-  # The Step Function needs permissions to execute Lambdas, which the LabRole has.
-  role_arn = local.lab_role_arn
+  # --- CORRECTED LINE ---
+  role_arn = aws_iam_role.processing_workflow_role.arn
 
   # This is the visual definition of your workflow.
-  # It defines the order and inputs/outputs of each step.
   definition = jsonencode({
     Comment = "A workflow to process financial documents using Textract and custom AI models."
     StartAt = "ExtractTextWithTextract"
@@ -16,10 +15,8 @@ resource "aws_sfn_state_machine" "document_processing_workflow" { # CORRECTED RE
         Resource = "arn:aws:states:::lambda:invoke"
         Parameters = {
           "FunctionName" = aws_lambda_function.document_processor.arn
-          # "Payload.$" = "$" passes the initial S3 event data to the Lambda
           "Payload.$"    = "$"
         }
-        # The output of this step will be passed to the next step
         Next = "ExtractEntitiesWithSageMaker"
       },
       # Second step: Call the SageMaker/Entity Extraction Lambda
@@ -28,11 +25,8 @@ resource "aws_sfn_state_machine" "document_processing_workflow" { # CORRECTED RE
         Resource = "arn:aws:states:::lambda:invoke"
         Parameters = {
           "FunctionName" = aws_lambda_function.entity_extractor.arn
-          # "Payload.$" = "$.Payload" takes the actual output from the previous Lambda
-          # and uses it as the input for this one.
           "Payload.$"    = "$.Payload"
         }
-        # This is the final step for now.
         End = true
       }
     }
@@ -40,7 +34,6 @@ resource "aws_sfn_state_machine" "document_processing_workflow" { # CORRECTED RE
 }
 
 # --- New S3 Trigger using EventBridge ---
-# This setup tells S3 to send a notification to EventBridge when a file is uploaded.
 
 # 1. Enable EventBridge notifications on the S3 bucket
 resource "aws_s3_bucket_notification" "bucket_eventbridge_notification" {
@@ -54,14 +47,14 @@ resource "aws_cloudwatch_event_rule" "s3_upload_rule" {
   description = "Triggers the Step Function workflow when a file is uploaded to the 'uploads/' folder."
 
   event_pattern = jsonencode({
-    "source" : ["aws.s3"],
-    "detail-type" : ["Object Created"],
-    "detail" : {
-      "bucket" : {
-        "name" : [aws_s3_bucket.documents_bucket.bucket]
+    "source"      = ["aws.s3"],
+    "detail-type" = ["Object Created"],
+    "detail"      = {
+      "bucket" = {
+        "name" = [aws_s3_bucket.documents_bucket.bucket]
       },
-      "object" : {
-        "key" : [{ "prefix" : "uploads/" }]
+      "object" = {
+        "key" = [{ "prefix" = "uploads/" }]
       }
     }
   })
@@ -70,8 +63,9 @@ resource "aws_cloudwatch_event_rule" "s3_upload_rule" {
 # 3. Connect the EventBridge rule to the Step Function workflow
 resource "aws_cloudwatch_event_target" "step_function_target" {
   rule      = aws_cloudwatch_event_rule.s3_upload_rule.name
-  arn       = aws_sfn_state_machine.document_processing_workflow.id # CORRECTED RESOURCE NAME
-  role_arn = local.lab_role_arn
+  arn       = aws_sfn_state_machine.document_processing_workflow.id
+  # --- CORRECTED LINE ---
+  role_arn  = aws_iam_role.processing_workflow_role.arn
 
   # This part reformats the S3 event into the format our first Lambda expects
   input_transformer {

@@ -32,9 +32,9 @@
     <div id="result"></div>
   </div>
 
-  <script>
+<script>
     // === PASTE YOUR API URL HERE ===
-    const API_ENDPOINT = 'https://2hb8pdrk7i.execute-api.us-east-1.amazonaws.com/';
+    const API_ENDPOINT = 'https://qcglc0j7e2.execute-api.us-east-1.amazonaws.com/';
     // ===============================
 
     const form = document.getElementById('uploadForm');
@@ -64,7 +64,11 @@
       resultDiv.innerHTML = '<pre>1. Requesting secure upload link...</pre>';
 
       try {
-        const getUrlResponse = await fetch(`${API_ENDPOINT}/generate-upload-url`, { method: 'GET' });
+        // --- THIS IS THE CHANGE ---
+        // We now pass the file's content type as a query parameter.
+        const contentType = encodeURIComponent(file.type);
+        const getUrlResponse = await fetch(`${API_ENDPOINT}/generate-upload-url?contentType=${contentType}`, { method: 'GET' });
+        // --------------------------
         
         if (!getUrlResponse.ok) {
             const errorText = await getUrlResponse.text();
@@ -81,11 +85,11 @@
         });
 
         if (!uploadResponse.ok) {
-            throw new Error('S3 upload failed.');
+            throw new Error('S3 upload failed. Check the console for details.');
         }
 
         loader.style.display = 'none';
-        resultDiv.innerHTML += `<pre style="color:green; font-weight:bold;">3. Upload successful! Backend processing has been triggered. Check CloudWatch logs for OCR results.</pre>`;
+        resultDiv.innerHTML += `<pre style="color:green; font-weight:bold;">3. Upload successful! Backend processing has been triggered. Check the Step Functions console.</pre>`;
         
       } catch (err) {
         loader.style.display = 'none';

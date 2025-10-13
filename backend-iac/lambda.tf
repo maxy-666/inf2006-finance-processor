@@ -19,7 +19,7 @@ resource "aws_lambda_function" "presigned_url_generator" {
   handler          = "lambda_function.lambda_handler"
   runtime          = "python3.9"
   # --- CORRECTED LINE ---
-  role             = local.lab_role_arn
+  role             = aws_iam_role.presigned_url_lambda_role.arn
   # ------------------------
   filename         = data.archive_file.presigned_url_lambda_zip.output_path
   source_code_hash = data.archive_file.presigned_url_lambda_zip.output_base64sha256
@@ -27,6 +27,7 @@ resource "aws_lambda_function" "presigned_url_generator" {
   environment {
     variables = {
       BUCKET_NAME = aws_s3_bucket.documents_bucket.bucket
+      FORCE_DEPLOY = "v1" 
     }
   }
 }
@@ -37,7 +38,7 @@ resource "aws_lambda_function" "document_processor" {
   handler          = "lambda_function.lambda_handler"
   runtime          = "python3.9"
   # --- CORRECTED LINE ---
-  role             = local.lab_role_arn
+  role             = aws_iam_role.processing_workflow_role.arn
   # ------------------------
   filename         = data.archive_file.processing_lambda_zip.output_path
   source_code_hash = data.archive_file.processing_lambda_zip.output_base64sha256
@@ -56,9 +57,9 @@ resource "aws_lambda_function" "entity_extractor" {
   function_name    = "extract-entities-from-text"
   handler          = "lambda_function.lambda_handler"
   runtime          = "python3.9"
-  # --- CORRECTED LINE ---
-  role             = local.lab_role_arn
-  # ------------------------
+
+  role             = aws_iam_role.processing_workflow_role.arn
+
   filename         = data.archive_file.entity_extractor_lambda_zip.output_path
   source_code_hash = data.archive_file.entity_extractor_lambda_zip.output_base64sha256
   timeout          = 30
