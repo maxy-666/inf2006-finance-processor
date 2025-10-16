@@ -1,5 +1,3 @@
-# backend-iac/s3.tf
-
 resource "aws_s3_bucket" "inf2006-s3frontend" {
     acceleration_status         = null
     arn                         = "arn:aws:s3:::inf2006-s3frontend"
