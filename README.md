@@ -31,12 +31,10 @@ The initial Proof-of-Concept (PoC) focuses on establishing the secure, serverles
 ## 👥 Team & Contributions (Adjust to your names)
 | Name | Role | Core Responsibility |
 | :--- | :--- | :--- |
-| **[Your Name]** | Cloud Architect & Front-End Developer | IaC (Terraform), API Gateway, Lambda integration, UI/UX. |
-| **[Teammate 2]** | ML Developer | Model 2: Layout Analysis & Model Training Pipeline. |
-| **[Teammate 3]** | ML Developer | Model 3/4: Entity Extraction & Categorisation Logic. |
-| **[Teammate 4]** | ... | ... |
-| **[Teammate 5]** | ... | ... |
+| **[Max Tan]** | Cloud Architect & Front-End Developer | IaC (Terraform), API Gateway, Lambda integration |
+| **[Loh Kai Chuin]** | ML Developer | Website Frontend, IaC (Terraform) for Frontend, UI/UX. |
+| **[Nurul Zahirah Binte Muhamadnoh]** | ML Developer | Model 2: Layout Analysis & Model Training Pipeline. |
+| **[Linus Koh Jiang Zhen]** | ML Developer | Model 3/4: Entity Extraction & Categorisation Logic. |
+| **[Wong Li Shen]** | ML Engineer | Machine Learning Model Evaluation |
 
 ---
-
-## 2. Creating the `.gitignore` (Security and Cleanliness) 🛡️

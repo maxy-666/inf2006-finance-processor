@@ -1,4 +1,4 @@
-cd<!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -33,8 +33,9 @@ cd<!doctype html>
   </div>
 
 <script>
-    // === PASTE YOUR API URL HERE ===
-    const API_ENDPOINT = 'https://qcglc0j7e2.execute-api.us-east-1.amazonaws.com/';
+    // === THIS IS THE ONLY CHANGE ===
+    // The endpoint now points to our secure backend proxy server.
+    const API_ENDPOINT = 'http://localhost:3000/api/generate-upload-url';
     // ===============================
 
     const form = document.getElementById('uploadForm');
@@ -61,14 +62,12 @@ cd<!doctype html>
       if (!file) return alert('Choose a file first');
 
       loader.style.display = 'inline';
-      resultDiv.innerHTML = '<pre>1. Requesting secure upload link...</pre>';
+      resultDiv.innerHTML = '<pre>1. Requesting secure upload link from proxy...</pre>';
 
       try {
-        // --- THIS IS THE CHANGE ---
-        // We now pass the file's content type as a query parameter.
         const contentType = encodeURIComponent(file.type);
-        const getUrlResponse = await fetch(`${API_ENDPOINT}/generate-upload-url?contentType=${contentType}`, { method: 'GET' });
-        // --------------------------
+        // We now call our secure proxy, not AWS directly.
+        const getUrlResponse = await fetch(`${API_ENDPOINT}?contentType=${contentType}`, { method: 'GET' });
         
         if (!getUrlResponse.ok) {
             const errorText = await getUrlResponse.text();

@@ -1,63 +1,63 @@
-# ------------------------------------
-# 1. CRITICAL: Terraform and Cloud Files
-# ------------------------------------
-# Ignore the local .terraform directory where provider binaries and modules are downloaded.
+------------------------------------
+
+1. CRITICAL: Terraform and Cloud Files
+
+------------------------------------
+
 .terraform/
-
-# Ignore all Terraform state files and backups (CRITICAL FOR SECURITY).
 *.tfstate
-*.tfstate.*
-
-# Ignore transient lock info files created by terraform apply.
+.tfstate.
 .terraform.tfstate.lock.info
-
-# Exclude all tfvars files which likely contain sensitive data (passwords, keys).
 *.tfvars
 *.tfvars.json
-
-# Ignore temporary plan files created by 'terraform plan -out=...'.
-*.tfplan
-
-# Ignore local crash log files.
+.tfplan
 crash.log
-crash.*.log
-
-# Ignore override files used for local testing/debugging.
+crash..log
 override.tf
 override.tf.json
 *_override.tf
 *_override.tf.json
-
-# Ignore CLI configuration files.
 .terraformrc
 terraform.rc
 
+------------------------------------
 
-# ------------------------------------
-# 2. Programming Language & Dependency Exclusions
-# ------------------------------------
-# Node / JavaScript / Front-end (FE)
-# Dependency folder (can be large).
+2. Programming Language & Dependency Exclusions
+
+------------------------------------
+
+Node / JavaScript / Front-end (FE)
+
 node_modules/
-
-# Ignore common build/output directories for front-end frameworks.
 /frontend/dist/
 /frontend/build/
 /frontend/out/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# Python / Lambda Exclusions
-# Bytecode and cache files.
-__pycache__/
+Python / Lambda Exclusions
+
+pycache/
 *.pyc
 *.pyo
-
-# Ignore Python virtual environments if stored in the root.
 /venv/
+
+--- ADD THIS SECTION ---
+
+Application Secrets (VERY IMPORTANT)
+
+Ignore the file containing environment variables and secrets.
+
 .env
 
+----------------------
 
-# ------------------------------------
-# 3. Operating System Files
-# ------------------------------------
-.DS_Store # macOS directory metadata
-Thumbs.db # Windows thumbnail cache
+------------------------------------
+
+3. Operating System Files
+
+------------------------------------
+
+.DS_Store
+Thumbs.db
