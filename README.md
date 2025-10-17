@@ -33,8 +33,8 @@ The initial Proof-of-Concept (PoC) focuses on establishing the secure, serverles
 | :--- | :--- | :--- |
 | **[Max Tan]** | Cloud Architect & Front-End Developer | IaC (Terraform), API Gateway, Lambda integration |
 | **[Loh Kai Chuin]** | Cloud Architect & Front-End Developer | Website Frontend, IaC (Terraform) for Frontend, UI/UX. |
-| **[Nurul Zahirah Binte Muhamadnoh]** | ML Developer | Model 2: Layout Analysis & Model Training Pipeline. |
-| **[Linus Koh Jiang Zhen]** | ML Developer | Model 3/4: Entity Extraction & Categorisation Logic. |
-| **[Wong Li Shen]** | ML Engineer | Machine Learning Model Evaluation |
+| **[Nurul Zahirah Binte Muhamadnoh]** | ML Developer | Model 2: Layout Analysis & Entity Extraction. |
+| **[Linus Koh Jiang Zhen]** | ML Developer | Model 3: Expense Categorization. |
+| **[Wong Li Shen]** | ML Engineer | Machine Learning Model 1 Evaluation |
 
 ---
