@@ -35,7 +35,6 @@ The initial Proof-of-Concept (PoC) focuses on establishing the secure, serverles
 | **[Loh Kai Chuin]** | Cloud Architect & Front-End Developer | Website Frontend, IaC (Terraform) for Frontend, UI/UX. |
 | **[Nurul Zahirah Binte Muhamadnoh]** | ML Developer | Model 2: Layout Analysis & Entity Extraction. |
 | **[Linus Koh Jiang Zhen]** | ML Developer | Model 3: Expense Categorization. |
-| **[Wong Li Shen]** | ML Engineer | Machine Learning Model Evaluation (Azure Document Intelligence and AWS Textract)
-OCR Model 1 |
+| **[Wong Li Shen]** | ML Engineer | Machine Learning Model Evaluation (Azure Document Intelligence and AWS Textract), OCR Model 1|
 
 ---
