@@ -28,13 +28,13 @@ The initial Proof-of-Concept (PoC) focuses on establishing the secure, serverles
 | **Frontend** | [e.g., React, or plain HTML/JS] | User interface for document upload and result viewing. |
 | **Key AI Service** | AWS Textract | Managed service for high-accuracy OCR. |
 
-## 👥 Team & Contributions (Adjust to your names)
+## 👥 Team & Contributions
 | Name | Role | Core Responsibility |
 | :--- | :--- | :--- |
 | **[Max Tan]** | Cloud Architect & Front-End Developer | IaC (Terraform), API Gateway, Lambda integration |
 | **[Loh Kai Chuin]** | Cloud Architect & Front-End Developer | Website Frontend, IaC (Terraform) for Frontend, UI/UX. |
-| **[Nurul Zahirah Binte Muhamadnoh]** | ML Developer | Model 2: Layout Analysis & Entity Extraction. |
-| **[Linus Koh Jiang Zhen]** | ML Developer | Model 3: Expense Categorization. |
+| **[Nurul Zahirah Binte Muhamadnoh]** | ML Developer | Model 2: Entity Extraction (LayoutLM), BIO Tagging & Label Alignment |
+| **[Linus Koh Jiang Zhen]** | ML Developer | Model 2 & 3: Entity Extraction, Expense Categorization Development |
 | **[Wong Li Shen]** | ML Engineer | Machine Learning Model Evaluation (Azure Document Intelligence and AWS Textract), OCR Model 1|
 
 ---
