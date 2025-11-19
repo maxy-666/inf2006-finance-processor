@@ -27,3 +27,16 @@ resource "aws_s3_bucket_versioning" "documents_bucket_versioning" {
 resource "random_id" "bucket_suffix" {
   byte_length = 8
 }
+
+# --- Analytics Data Lake ---
+resource "aws_s3_bucket" "analytics_datalake" {
+  # We use a fixed name here for simplicity, but add a random_id in production
+  bucket = "inf2006-analytics-datalake" 
+
+  # Enforce private access
+  acl    = "private"
+
+  tags = {
+    Project = "INF2006-Analytics"
+  }
+}

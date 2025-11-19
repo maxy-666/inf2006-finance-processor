@@ -62,13 +62,18 @@ resource "aws_iam_policy" "workflow_permissions_policy" {
       { Action = "sagemaker:InvokeEndpoint", Effect = "Allow", Resource = "*" },
       { Action = "lambda:InvokeFunction", Effect = "Allow", Resource = "*" },
       { Action = ["ecr:BatchGetImage", "ecr:GetDownloadUrlForLayer"], Effect = "Allow", Resource = "arn:aws:ecr:us-east-1:763104351884:repository/huggingface-pytorch-inference" },
-      # --- THIS NEW ACTION IS THE FIX ---
       {
         Action   = "states:StartExecution",
         Effect   = "Allow",
         Resource = aws_sfn_state_machine.document_processing_workflow.id
+      },
+      # --- THIS IS THE NEW PERMISSION YOU ARE ADDING ---
+      {
+        Action   = "dynamodb:PutItem",
+        Effect   = "Allow",
+        Resource = aws_dynamodb_table.processed_documents.arn
       }
-      # ---------------------------------
+      # ------------------------------------------------
     ]
   })
 }
@@ -80,5 +85,53 @@ resource "aws_iam_role_policy_attachment" "workflow_permissions" {
 
 resource "aws_iam_role_policy_attachment" "workflow_logs" {
   role       = aws_iam_role.processing_workflow_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
+# 3. IAM Role for the ETL Lambda (Stream -> S3)
+
+resource "aws_iam_role" "etl_lambda_role" {
+  name = "etl-lambda-role"
+  assume_role_policy = jsonencode({
+    Version   = "2012-10-17"
+    Statement = [{
+      Action    = "sts:AssumeRole"
+      Effect    = "Allow"
+      Principal = { Service = "lambda.amazonaws.com" }
+    }]
+  })
+}
+
+resource "aws_iam_policy" "etl_lambda_policy" {
+  name   = "ETLLambdaPolicy"
+  policy = jsonencode({
+    Version   = "2012-10-17"
+    Statement = [
+      {
+        Action   = "s3:PutObject",
+        Effect   = "Allow",
+        Resource = "${aws_s3_bucket.analytics_datalake.arn}/*"
+      },
+      {
+        Action = [
+          "dynamodb:DescribeStream",
+          "dynamodb:GetRecords",
+          "dynamodb:GetShardIterator",
+          "dynamodb:ListStreams"
+        ],
+        Effect   = "Allow",
+        Resource = aws_dynamodb_table.processed_documents.stream_arn
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "etl_policy" {
+  role       = aws_iam_role.etl_lambda_role.name
+  policy_arn = aws_iam_policy.etl_lambda_policy.arn
+}
+
+resource "aws_iam_role_policy_attachment" "etl_logs" {
+  role       = aws_iam_role.etl_lambda_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }

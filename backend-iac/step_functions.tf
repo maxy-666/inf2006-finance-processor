@@ -6,10 +6,10 @@ resource "aws_sfn_state_machine" "document_processing_workflow" {
 
   # This is the visual definition of your workflow.
   definition = jsonencode({
-    Comment = "A workflow to process financial documents using Textract and custom AI models."
+    Comment = "Full pipeline: OCR -> Entity Extraction -> Categorization -> DB Save"
     StartAt = "ExtractTextWithTextract"
     States = {
-      # First step: Call the Textract Lambda function
+      # Step 1: Call Textract
       ExtractTextWithTextract = {
         Type     = "Task"
         Resource = "arn:aws:states:::lambda:invoke"
@@ -17,15 +17,53 @@ resource "aws_sfn_state_machine" "document_processing_workflow" {
           "FunctionName" = aws_lambda_function.document_processor.arn
           "Payload.$"    = "$"
         }
-        Next = "ExtractEntitiesWithSageMaker"
+        # This takes the output {"statusCode": 200, "body": "..."}
+        # It parses the "body" string as JSON
+        # And it stores that parsed JSON in a variable "$.parsed_body"
+        ResultSelector = {
+          "parsed_body.$" = "States.StringToJson($.Payload.body)"
+        }
+        ResultPath = "$.textract_output"
+        Next       = "ExtractEntitiesWithSageMaker"
       },
-      # Second step: Call the SageMaker/Entity Extraction Lambda
+
+      # Step 2: Call SageMaker
       ExtractEntitiesWithSageMaker = {
         Type     = "Task"
         Resource = "arn:aws:states:::lambda:invoke"
         Parameters = {
           "FunctionName" = aws_lambda_function.entity_extractor.arn
-          "Payload.$"    = "$.Payload"
+          "Payload.$"    = "$.textract_output.parsed_body" # Pass the parsed body
+        }
+        ResultSelector = {
+          "parsed_body.$" = "States.StringToJson($.Payload.body)"
+        }
+        ResultPath = "$.sagemaker_output"
+        Next       = "CategorizeExpense"
+      },
+
+      # Step 3: Categorize Expense
+      CategorizeExpense = {
+        Type     = "Task"
+        Resource = "arn:aws:states:::lambda:invoke"
+        Parameters = {
+          "FunctionName" = aws_lambda_function.expense_categorizer.arn
+          "Payload.$"    = "$.sagemaker_output.parsed_body" # Pass the parsed body
+        }
+        ResultSelector = {
+          "parsed_body.$" = "States.StringToJson($.Payload.body)"
+        }
+        ResultPath = "$.categorizer_output"
+        Next       = "SaveToDynamoDB"
+      },
+
+      # Step 4: Save to DB
+      SaveToDynamoDB = {
+        Type     = "Task"
+        Resource = "arn:aws:states:::lambda:invoke"
+        Parameters = {
+          "FunctionName" = aws_lambda_function.save_to_dynamodb.arn
+          "Payload.$"    = "$.categorizer_output.parsed_body" # Pass the final object
         }
         End = true
       }
