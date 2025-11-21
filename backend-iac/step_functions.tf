@@ -17,9 +17,16 @@ resource "aws_sfn_state_machine" "document_processing_workflow" {
           "FunctionName" = aws_lambda_function.document_processor.arn
           "Payload.$"    = "$"
         }
-        # This takes the output {"statusCode": 200, "body": "..."}
-        # It parses the "body" string as JSON
-        # And it stores that parsed JSON in a variable "$.parsed_body"
+        # --- NEW RETRY LOGIC ---
+        Retry = [
+          {
+            "ErrorEquals": ["Lambda.ServiceException", "Lambda.AWSLambdaException", "Lambda.SdkClientException", "Lambda.TooManyRequestsException", "States.TaskFailed"],
+            "IntervalSeconds": 2,
+            "MaxAttempts": 6,
+            "BackoffRate": 2.0
+          }
+        ]
+        # -----------------------
         ResultSelector = {
           "parsed_body.$" = "States.StringToJson($.Payload.body)"
         }
@@ -27,14 +34,24 @@ resource "aws_sfn_state_machine" "document_processing_workflow" {
         Next       = "ExtractEntitiesWithSageMaker"
       },
 
-      # Step 2: Call SageMaker
+      # Step 2: Call SageMaker (Entity Extraction)
       ExtractEntitiesWithSageMaker = {
         Type     = "Task"
         Resource = "arn:aws:states:::lambda:invoke"
         Parameters = {
           "FunctionName" = aws_lambda_function.entity_extractor.arn
-          "Payload.$"    = "$.textract_output.parsed_body" # Pass the parsed body
+          "Payload.$"    = "$.textract_output.parsed_body"
         }
+        # --- NEW RETRY LOGIC ---
+        Retry = [
+          {
+            "ErrorEquals": ["Lambda.ServiceException", "Lambda.AWSLambdaException", "Lambda.SdkClientException", "Lambda.TooManyRequestsException", "States.TaskFailed"],
+            "IntervalSeconds": 2,
+            "MaxAttempts": 6,
+            "BackoffRate": 2.0
+          }
+        ]
+        # -----------------------
         ResultSelector = {
           "parsed_body.$" = "States.StringToJson($.Payload.body)"
         }
@@ -42,14 +59,24 @@ resource "aws_sfn_state_machine" "document_processing_workflow" {
         Next       = "CategorizeExpense"
       },
 
-      # Step 3: Categorize Expense
+      # Step 3: Categorize Expense (Model 3)
       CategorizeExpense = {
         Type     = "Task"
         Resource = "arn:aws:states:::lambda:invoke"
         Parameters = {
           "FunctionName" = aws_lambda_function.expense_categorizer.arn
-          "Payload.$"    = "$.sagemaker_output.parsed_body" # Pass the parsed body
+          "Payload.$"    = "$.sagemaker_output.parsed_body"
         }
+        # --- NEW RETRY LOGIC ---
+        Retry = [
+          {
+            "ErrorEquals": ["Lambda.ServiceException", "Lambda.AWSLambdaException", "Lambda.SdkClientException", "Lambda.TooManyRequestsException", "States.TaskFailed"],
+            "IntervalSeconds": 2,
+            "MaxAttempts": 6,
+            "BackoffRate": 2.0
+          }
+        ]
+        # -----------------------
         ResultSelector = {
           "parsed_body.$" = "States.StringToJson($.Payload.body)"
         }
@@ -63,8 +90,16 @@ resource "aws_sfn_state_machine" "document_processing_workflow" {
         Resource = "arn:aws:states:::lambda:invoke"
         Parameters = {
           "FunctionName" = aws_lambda_function.save_to_dynamodb.arn
-          "Payload.$"    = "$.categorizer_output.parsed_body" # Pass the final object
+          "Payload.$"    = "$.categorizer_output.parsed_body"
         }
+        Retry = [
+          {
+            "ErrorEquals": ["DynamoDB.ProvisionedThroughputExceededException", "Lambda.TooManyRequestsException"],
+            "IntervalSeconds": 1,
+            "MaxAttempts": 3,
+            "BackoffRate": 2.0
+          }
+        ]
         End = true
       }
     }
