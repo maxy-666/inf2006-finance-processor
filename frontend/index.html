@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AWS Textract Viewer + Login + History</title>
+
+  <style>
+    :root {
+      --bg: #f4f5f7;
+      --card: #ffffff;
+      --border: #d1d5db;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --primary: #0f62fe;
+      --primary-hover: #0043ce;
+      --radius: 10px;
+    }
+
+    [data-theme="dark"] {
+      --bg: #111827;
+      --card: #1f2937;
+      --border: #374151;
+      --text: #f3f4f6;
+      --muted: #9ca3af;
+      --primary: #3b82f6;
+      --primary-hover: #1e3a8a;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Arial;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 0;
+      transition: background 0.25s ease, color 0.25s ease;
+    }
+
+    .navbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 2rem;
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-links a {
+      margin-left: 1.2rem;
+      text-decoration: none;
+      color: var(--text);
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 900px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      padding: 2rem;
+      border-radius: var(--radius);
+      box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+      margin-top: 2rem;
+    }
+
+    button {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 0.7rem 1.2rem;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: background 0.15s ease-in-out;
+      font-size: 1rem;
+    }
+
+    button:hover { background: var(--primary-hover); }
+
+    input[type="file"] {
+      width: 100%;
+      padding: 0.6rem;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--text);
+      margin-bottom: 1rem;
+    }
+
+    #historyList {
+      margin-top: 1rem;
+      padding-left: 1rem;
+    }
+
+    #historyList li {
+      margin-bottom: 0.5rem;
+    }
+
+        #preview {
+      max-width: 100%;
+      margin-top: 1rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      display: none;
+    }
+
+    pre {
+      background: var(--bg);
+      padding: 1rem;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      white-space: pre-wrap;
+      margin-top: 1rem;
+      font-size: 0.9rem;
+    }
+
+        hr {
+      margin: 3rem 0 1rem;
+      border: none;
+      border-top: 1px solid var(--border);
+    }
+
+  </style>
+</head>
+<body data-theme="dark">
+
+  <div class="navbar">
+    <div class="logo"><strong>AWS Textract OCR</strong></div>
+    <div class="nav-links">
+      <a id="navUpload">Upload</a>
+      <a id="navHistory">History</a>
+      <a id="navLogin">Login</a>
+      <a id="navSignup">Sign Up</a>
+      <button id="themeToggle">Light Mode</button>
+    </div>
+  </div>
+
+  <div class="container">
+
+    <!-- Upload Section -->
+    <div id="uploadSection" class="card">
+      <h2>Upload Document</h2>
+      <p class="muted">Upload an image or PDF</p>
+
+      <form id="uploadForm">
+        <input type="file" id="fileInput" accept="image/*,application/pdf" required />
+        <button type="submit">Upload & Extract</button>
+        <span id="loader" class="muted" style="display:none;">Processing…</span>
+      </form>
+
+      <img id="preview" style="display:none; max-width:100%; margin-top:1rem; border-radius:var(--radius);" />
+
+      <div id="result"></div>
+    </div>
+
+    <!-- History Section -->
+    <div id="historySection" class="card" style="display:none;">
+      <h2>Upload History</h2>
+      <p class="muted">Your previously uploaded files</p>
+      <ul id="historyList"></ul>
+      <button id="refreshHistory">Refresh</button>
+    </div>
+
+    <!-- Login Section -->
+    <div id="loginSection" class="card" style="display:none;">
+      <h2>Login</h2>
+      <p class="muted">Login</p>
+
+      <input id="username" placeholder="Username" style="width:100%; padding:0.6rem; margin-bottom:1rem;" />
+      <input id="password" placeholder="Password" type="password" style="width:100%; padding:0.6rem; margin-bottom:1rem;" />
+      <button id="loginButton">Login</button>
+      <div id="loginStatus" style="margin-top:1rem;"></div>
+    </div>
+
+    <!-- Signup Section -->
+  <div id="signupSection" class="card" style="display:none;">
+    <h2>Sign Up</h2>
+    <p class="muted">Create a new account</p>
+
+    <input id="signupUsername" placeholder="Username" style="width:100%; padding:0.6rem; margin-bottom:1rem;" />
+    <input id="signupPassword" placeholder="Password" type="password" style="width:100%; padding:0.6rem; margin-bottom:1rem;" />
+    <button id="signupButton">Sign Up</button>
+    <div id="signupStatus" style="margin-top:1rem;"></div>
+  </div>
+
+
+  </div>
+
+  <script>
+   const uploadSection = document.getElementById('uploadSection');
+  const historySection = document.getElementById('historySection');
+  const loginSection = document.getElementById('loginSection');
+  const signupSection = document.getElementById('signupSection');
+
+  function show(section) {
+    uploadSection.style.display = 'none';
+    historySection.style.display = 'none';
+    loginSection.style.display = 'none';
+    signupSection.style.display = 'none';
+    section.style.display = 'block';
+  }
+
+  document.getElementById('navUpload').onclick = () => show(uploadSection);
+  document.getElementById('navHistory').onclick = () => show(historySection);
+  document.getElementById('navLogin').onclick = () => show(loginSection);
+  document.getElementById('navSignup').onclick = () => show(signupSection);
+
+  // =========================
+  // THEME SWITCH
+  // =========================
+  const themeToggle = document.getElementById('themeToggle');
+  const body = document.body;
+  themeToggle.addEventListener('click', () => {
+    const cur = body.getAttribute('data-theme');
+    const next = cur === 'light' ? 'dark' : 'light';
+    body.setAttribute('data-theme', next);
+    themeToggle.textContent = next === 'light' ? 'Dark Mode' : 'Light Mode';
+  });
+
+
+  //login stuff
+  const AUTH_API = 'https://9qjpd4xue2.us-east-1.awsapprunner.com';
+  let authToken = null;
+
+  // =========================
+  // SIGNUP / LOGIN FUNCTIONS
+  // =========================
+document.getElementById('signupButton').onclick = async () => {
+  const username = document.getElementById('signupUsername').value;
+  const password = document.getElementById('signupPassword').value;
+  const statusDiv = document.getElementById('signupStatus');
+  statusDiv.innerHTML = 'Signing up...';
+
+  try {
+    const res = await fetch(`${AUTH_API}/signup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message);
+
+    document.getElementById('signupStatus').innerHTML = 'Signup successful! You can now login.';
+  } catch (err) {
+    document.getElementById('signupStatus').innerHTML = `Error: ${err.message}`;
+  }
+};
+
+  async function signup(username, password) {
+    const res = await fetch(`${AUTH_API}/signup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message);
+    return data;
+  }
+
+  async function login(username, password) {
+    const res = await fetch(`${AUTH_API}/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message);
+    authToken = data.token; // store JWT
+    return data;
+  }
+
+  // =========================
+  // LOGIN BUTTON HANDLER
+  // =========================
+  document.getElementById('loginButton').onclick = async () => {
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+
+    document.getElementById('loginStatus').innerHTML = 'Logging in...';
+
+    try {
+      await login(username, password);
+      document.getElementById('loginStatus').innerHTML = 'Login successful';
+    } catch (err) {
+      document.getElementById('loginStatus').innerHTML = `Error: ${err.message}`;
+    }
+  };
+
+  // =========================
+  // HISTORY FETCH
+  // =========================
+  document.getElementById('refreshHistory').onclick = async () => {
+    const list = document.getElementById('historyList');
+    // Placeholder: will eventually call backend for user history
+    list.innerHTML = '<li>Sample-upload-1.pdf</li><li>Sample-image-2.jpg</li>';
+  };
+
+
+
+
+
+
+    // core functionality here, unchanged since prototype ver 1
+    const API_ENDPOINT = 'https://inf2006-proxy-server.onrender.com/api/generate-upload-url';
+
+    const form = document.getElementById('uploadForm');
+    const fileInput = document.getElementById('fileInput');
+    const preview = document.getElementById('preview');
+    const resultDiv = document.getElementById('result');
+    const loader = document.getElementById('loader');
+
+    // core functionality eventlistener, read file input
+    fileInput.addEventListener('change', (e) => {
+      const f = e.target.files[0];
+      if (!f) return;
+
+      if (f.type.startsWith('image/')) {
+        const url = URL.createObjectURL(f);
+        preview.src = url;
+        preview.style.display = 'block';
+      } else {
+        preview.style.display = 'none';
+      }
+    });
+
+    // validation checks and submits file 
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const file = fileInput.files[0];
+      if (!file) return alert('Choose a file first');
+
+      loader.style.display = 'inline';
+      resultDiv.innerHTML = '<pre>1. Requesting upload link from server...</pre>';
+
+      try {
+        const contentType = encodeURIComponent(file.type);
+
+        // calling secure proxy instead of AWS directly
+        const getUrlResponse = await fetch(`${API_ENDPOINT}?contentType=${contentType}`);
+
+        //if error, prompts upload failed with the status msg
+        if (!getUrlResponse.ok) {
+          const msg = await getUrlResponse.text();
+          throw new Error(`Upload URL failed. Status: ${getUrlResponse.status}. ${msg}`);
+        }
+
+        // retrieves link of S3 bucket
+        const { uploadURL } = await getUrlResponse.json();
+        resultDiv.innerHTML += '<pre>2. Upload link received. Uploading to S3...</pre>';
+
+        // using HTTP put method to create/update data
+        const uploadResponse = await fetch(uploadURL, {
+          method: 'PUT',
+          body: file,
+          headers: { 'Content-Type': file.type }
+        });
+
+        // if error prompts, inform user
+        if (!uploadResponse.ok) throw new Error('Upload failure.');
+
+        loader.style.display = 'none';
+        resultDiv.innerHTML += '<pre style="color:green;font-weight:bold;">3. Upload complete! Processing triggered.</pre>';
+
+      } catch (err) {
+        loader.style.display = 'none';
+        resultDiv.innerHTML = `<pre style="color:red;">Error: ${err.message}</pre>`;
+      }
+    });
+
+  </script>
+</body>
+</html>
