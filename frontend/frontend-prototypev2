@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AWS Textract Viewer</title>
+  <style>
+    :root {
+      --bg: #f4f5f7;
+      --card: #ffffff;
+      --border: #d1d5db;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --primary: #0f62fe;
+      --primary-hover: #0043ce;
+      --radius: 10px;
+    }
+
+    [data-theme="dark"] {
+      --bg: #111827;
+      --card: #1f2937;
+      --border: #374151;
+      --text: #f3f4f6;
+      --muted: #9ca3af;
+      --primary: #3b82f6;
+      --primary-hover: #1e3a8a;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Arial;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 2rem;
+      display: flex;
+      justify-content: center;
+      transition: background 0.25s ease, color 0.25s ease;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 900px;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+
+    h1 {
+      font-size: 1.9rem;
+      font-weight: 600;
+    }
+
+    #themeToggle {
+      padding: 0.4rem 1rem;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--text);
+      cursor: pointer;
+      transition: 0.2s background;
+    }
+
+    #themeToggle:hover {
+      background: var(--border);
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      padding: 2rem;
+      border-radius: var(--radius);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+    }
+
+    .muted {
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    input[type="file"] {
+      width: 100%;
+      padding: 0.6rem;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--text);
+    }
+
+    button {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 0.7rem 1.2rem;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: background 0.15s ease-in-out;
+      font-size: 1rem;
+      margin-top: 0.8rem;
+    }
+
+    button:hover {
+      background: var(--primary-hover);
+    }
+
+    #preview {
+      max-width: 100%;
+      margin-top: 1rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      display: none;
+    }
+
+    pre {
+      background: var(--bg);
+      padding: 1rem;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      white-space: pre-wrap;
+      margin-top: 1rem;
+      font-size: 0.9rem;
+    }
+
+    hr {
+      margin: 3rem 0 1rem;
+      border: none;
+      border-top: 1px solid var(--border);
+    }
+  </style>
+</head>
+<body data-theme="dark">
+  <div class="container">
+
+    <div class="header">
+      <h1>AWS Textract — OCR Viewer</h1>
+      <button id="themeToggle">Light Mode</button>
+    </div>
+
+    <div class="card">
+      <p class="muted">Upload an image (PNG/JPG). PDFs are accepted but require asynchronous processing not included in this demo.</p>
+
+      <form id="uploadForm">
+        <input type="file" id="fileInput" accept="image/*,application/pdf" required />
+        <button type="submit">Upload & Extract</button>
+        <span id="loader" class="muted" style="display:none;">Processing…</span>
+      </form>
+
+      <img id="preview" />
+
+      <div id="result"></div>
+    </div>
+
+    <hr />
+    <p class="muted">Copyright INF2006 AY2025 Trimester 1 Group 12</p>
+  </div>
+
+  <script>
+    const API_ENDPOINT = 'https://inf2006-proxy-server.onrender.com/api/generate-upload-url';
+
+    const form = document.getElementById('uploadForm');
+    const fileInput = document.getElementById('fileInput');
+    const preview = document.getElementById('preview');
+    const resultDiv = document.getElementById('result');
+    const loader = document.getElementById('loader');
+    const themeToggle = document.getElementById('themeToggle');
+    const body = document.body;
+
+    themeToggle.addEventListener('click', () => {
+      const current = body.getAttribute('data-theme');
+      const next = current === 'light' ? 'dark' : 'light';
+      body.setAttribute('data-theme', next);
+      themeToggle.textContent = next === 'light' ? 'Dark Mode' : 'Light Mode';
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      const f = e.target.files[0];
+      if (!f) return;
+
+      if (f.type.startsWith('image/')) {
+        preview.src = URL.createObjectURL(f);
+        preview.style.display = 'block';
+      } else {
+        preview.style.display = 'none';
+      }
+    });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const file = fileInput.files[0];
+      if (!file) return alert('Choose a file first');
+
+      loader.style.display = 'inline';
+      resultDiv.innerHTML = '<pre>1. Requesting upload link from server...</pre>';
+
+      try {
+        const contentType = encodeURIComponent(file.type);
+        const getUrlResponse = await fetch(`${API_ENDPOINT}?contentType=${contentType}`);
+
+        if (!getUrlResponse.ok) {
+          const msg = await getUrlResponse.text();
+          throw new Error(`Upload URL failed. Status: ${getUrlResponse.status}. ${msg}`);
+        }
+
+        const { uploadURL } = await getUrlResponse.json();
+        resultDiv.innerHTML += '<pre>2. Upload link received. Uploading to S3...</pre>';
+
+        const uploadResponse = await fetch(uploadURL, {
+          method: 'PUT',
+          body: file,
+          headers: { 'Content-Type': file.type }
+        });
+
+        if (!uploadResponse.ok) throw new Error('Upload failure.');
+
+        loader.style.display = 'none';
+        resultDiv.innerHTML += '<pre style="color:green;font-weight:bold;">3. Upload complete! Processing triggered.</pre>';
+
+      } catch (err) {
+        loader.style.display = 'none';
+        resultDiv.innerHTML = `<pre style="color:red;">Error: ${err.message}</pre>`;
+      }
+    });
+  </script>
+</body>
+</html>
