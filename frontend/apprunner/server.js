@@ -27,6 +27,56 @@ CREATE TABLE IF NOT EXISTS users (
 
 console.log("Database ready: 'users' table verified");
 
+// ============================================
+// DEBUG ENDPOINTS (Remove before production!)
+// ============================================
+
+// View all users
+app.get("/debug/users", async (req, res) => {
+  try {
+    const [rows] = await db.execute("SELECT id, username FROM users");
+    res.json({ 
+      count: rows.length, 
+      users: rows 
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Delete a specific user
+app.delete("/debug/delete-user/:username", async (req, res) => {
+  try {
+    const [result] = await db.execute(
+      "DELETE FROM users WHERE username = ?",
+      [req.params.username]
+    );
+    res.json({ 
+      message: result.affectedRows > 0 ? "User deleted" : "User not found",
+      deletedCount: result.affectedRows 
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Clear all users
+app.post("/debug/clear-all", async (req, res) => {
+  try {
+    const [result] = await db.execute("DELETE FROM users");
+    res.json({ 
+      message: "All users deleted", 
+      deletedCount: result.affectedRows 
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================
+// MAIN ENDPOINTS
+// ============================================
+
 // SIGNUP
 app.post("/signup", async (req, res) => {
   const { username, password } = req.body;
@@ -83,5 +133,17 @@ app.post("/login", async (req, res) => {
   }
 });
 
+// Health check
+app.get("/health", (req, res) => {
+  res.json({ status: "OK", timestamp: new Date().toISOString() });
+});
+
 // START SERVER
-app.listen(3000, () => console.log("Server running on port 3000"));
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on port ${PORT}`);
+  console.log("Debug endpoints enabled:");
+  console.log("  GET  /debug/users");
+  console.log("  DELETE /debug/delete-user/:username");
+  console.log("  POST /debug/clear-all");
+});
