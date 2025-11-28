@@ -70,3 +70,30 @@ resource "aws_s3_bucket_policy" "allow_public_reports" {
 
   depends_on = [aws_s3_bucket_public_access_block.analytics_public_access]
 }
+
+# --- Lifecycle Policy for Cost Optimization ---
+resource "aws_s3_bucket_lifecycle_configuration" "datalake_lifecycle" {
+  bucket = aws_s3_bucket.analytics_datalake.id
+
+  rule {
+    id     = "archive-historical-data"
+    status = "Enabled"
+
+    # Transition to Standard-IA (Infrequent Access) after 90 days
+    transition {
+      days          = 90
+      storage_class = "STANDARD_IA"
+    }
+
+    # Transition to Glacier (Cold Storage) after 1 year (365 days)
+    transition {
+      days          = 365
+      storage_class = "GLACIER"
+    }
+    
+    # (Optional) Expiration rule if you want to delete data eventually
+    # expiration {
+    #   days = 3650 # 10 years
+    # }
+  }
+}
