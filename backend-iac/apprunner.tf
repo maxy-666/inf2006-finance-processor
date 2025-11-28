@@ -28,7 +28,7 @@ resource "aws_apprunner_service" "apprunner" {
           runtime_environment_variables = {
             "DB_HOST"    = "inf2006proj.c2recquoobti.us-east-1.rds.amazonaws.com"
             "DB_NAME"    = "users"
-            "DB_PASS"    = "INF2006Year2Tri1"
+            "DB_PASS"    = ""
             "DB_USER"    = "admin"
             "JWT_SECRET" = "YOUR_SECRET_KEY"
             "Port"       = "3000"

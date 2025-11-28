@@ -14,7 +14,7 @@ resource "aws_db_instance" "example" {
   # Database Credentials
   db_name                = "users"
   username               = "admin"
-  password               = "INF2006Year2Tri1" 
+  password               = "" 
   
   # Network & Access
   publicly_accessible    = true
