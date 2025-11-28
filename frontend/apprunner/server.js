@@ -1,6 +1,6 @@
 import express from "express";
 import mysql from "mysql2/promise";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import cors from "cors";
 
@@ -17,17 +17,15 @@ const db = await mysql.createPool({
 });
 
 // DROP & CREATE TABLE (DEV ONLY)
-await db.execute(`DROP TABLE IF EXISTS users`);
-
 await db.execute(`
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
   id INT AUTO_INCREMENT PRIMARY KEY,
   username VARCHAR(50) NOT NULL UNIQUE,
   password_hash VARCHAR(255) NOT NULL
 )
 `);
 
-console.log("Database ready: 'users' table created");
+console.log("Database ready: 'users' table verified");
 
 // SIGNUP
 app.post("/signup", async (req, res) => {
