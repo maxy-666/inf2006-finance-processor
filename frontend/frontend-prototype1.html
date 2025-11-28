@@ -33,10 +33,8 @@
   </div>
 
 <script>
-    // === THIS IS THE ONLY CHANGE ===
     // The endpoint now points to our secure backend proxy server.
     const API_ENDPOINT = 'https://inf2006-proxy-server.onrender.com/api/generate-upload-url';
-    // ===============================
 
     const form = document.getElementById('uploadForm');
     const fileInput = document.getElementById('fileInput');
@@ -66,7 +64,6 @@
 
       try {
         const contentType = encodeURIComponent(file.type);
-        // We now call our secure proxy, not AWS directly.
         const getUrlResponse = await fetch(`${API_ENDPOINT}?contentType=${contentType}`, { method: 'GET' });
         
         if (!getUrlResponse.ok) {

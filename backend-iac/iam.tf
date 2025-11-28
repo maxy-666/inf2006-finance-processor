@@ -67,13 +67,11 @@ resource "aws_iam_policy" "workflow_permissions_policy" {
         Effect   = "Allow",
         Resource = aws_sfn_state_machine.document_processing_workflow.id
       },
-      # --- THIS IS THE NEW PERMISSION YOU ARE ADDING ---
       {
         Action   = "dynamodb:PutItem",
         Effect   = "Allow",
         Resource = aws_dynamodb_table.processed_documents.arn
       }
-      # ------------------------------------------------
     ]
   })
 }
@@ -89,7 +87,6 @@ resource "aws_iam_role_policy_attachment" "workflow_logs" {
 }
 
 # 3. IAM Role for the ETL Lambda (Stream -> S3)
-
 resource "aws_iam_role" "etl_lambda_role" {
   name = "etl-lambda-role"
   assume_role_policy = jsonencode({

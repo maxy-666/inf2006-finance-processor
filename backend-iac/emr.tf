@@ -60,7 +60,7 @@ resource "aws_emr_cluster" "analytics_cluster" {
   }
   core_instance_group {
     instance_type  = "m5.xlarge"
-    instance_count = 1
+    instance_count = 2
   }
 
   # Log to S3 so we can debug
@@ -70,9 +70,4 @@ resource "aws_emr_cluster" "analytics_cluster" {
   tags = {
     Project = "BigData-Batch-Layer"
   }
-  
-  # OPTIONAL: Auto-termination (Uncomment to be safe)
-  # auto_termination_policy {
-  #   idle_timeout = 3600 
-  # }
 }

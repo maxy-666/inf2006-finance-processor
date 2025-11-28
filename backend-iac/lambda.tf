@@ -64,7 +64,6 @@ resource "aws_lambda_function" "entity_extractor" {
 }
 
 # --- 4. Expense Categorizer (Model 3) ---
-# This was likely the missing block causing your error!
 data "archive_file" "categorizer_zip" {
   type        = "zip"
   source_dir  = "../backend-lambda/expense_categorizer/"
@@ -82,7 +81,6 @@ resource "aws_lambda_function" "expense_categorizer" {
 
   environment {
     variables = {
-      # Ensure this matches your actual SageMaker endpoint name exactly
       SAGEMAKER_ENDPOINT_NAME = "inf2006-expense-categorization-endpoint"
     }
   }

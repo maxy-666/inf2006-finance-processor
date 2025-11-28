@@ -20,14 +20,11 @@ def lambda_handler(event, context):
     Generates a pre-signed URL for uploading a file to S3.
     """
     try:
-        # --- THIS IS THE CHANGE ---
-        # Get the content type from the query string sent by the front-end.
         query_params = event.get('queryStringParameters', {})
         content_type = query_params.get('contentType')
 
         if not content_type:
             raise ValueError("contentType query parameter is required.")
-        # --------------------------
 
         object_key = f"uploads/{uuid.uuid4()}"
 

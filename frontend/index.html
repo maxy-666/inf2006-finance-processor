@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>AWS Textract Viewer + Login + History</title>
+  <title>AWS Textract Viewer + Analytics</title>
 
   <style>
     :root {
@@ -101,7 +101,7 @@
       margin-bottom: 0.5rem;
     }
 
-        #preview {
+    #preview {
       max-width: 100%;
       margin-top: 1rem;
       border: 1px solid var(--border);
@@ -109,17 +109,22 @@
       display: none;
     }
 
-    pre {
-      background: var(--bg);
-      padding: 1rem;
-      border-radius: var(--radius);
-      border: 1px solid var(--border);
-      white-space: pre-wrap;
+    /* Style for the results container to handle multiple lines */
+    #result {
       margin-top: 1rem;
-      font-size: 0.9rem;
     }
 
-        hr {
+    .status-line {
+      background: var(--bg);
+      padding: 0.8rem;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      margin-top: 0.5rem;
+      font-size: 0.9rem;
+      white-space: pre-wrap;
+    }
+
+    hr {
       margin: 3rem 0 1rem;
       border: none;
       border-top: 1px solid var(--border);
@@ -142,13 +147,12 @@
 
   <div class="container">
 
-    <!-- Upload Section -->
     <div id="uploadSection" class="card">
       <h2>Upload Document</h2>
-      <p class="muted">Upload an image or PDF</p>
+      <p class="muted">Upload images or PDFs (Bulk upload supported)</p>
 
       <form id="uploadForm">
-        <input type="file" id="fileInput" accept="image/*,application/pdf" required />
+        <input type="file" id="fileInput" accept="image/*,application/pdf" multiple required />
         <button type="submit">Upload & Extract</button>
         <span id="loader" class="muted" style="display:none;">Processing…</span>
       </form>
@@ -158,7 +162,9 @@
       <div id="result"></div>
     </div>
 
-    <!-- History Section -->
+    <div id="dashboardSection" class="card" style="display:none;">
+      </div>
+
     <div id="historySection" class="card" style="display:none;">
       <h2>Upload History</h2>
       <p class="muted">Your previously uploaded files</p>
@@ -166,147 +172,113 @@
       <button id="refreshHistory">Refresh</button>
     </div>
 
-    <!-- Login Section -->
     <div id="loginSection" class="card" style="display:none;">
       <h2>Login</h2>
       <p class="muted">Login</p>
-
       <input id="username" placeholder="Username" style="width:100%; padding:0.6rem; margin-bottom:1rem;" />
       <input id="password" placeholder="Password" type="password" style="width:100%; padding:0.6rem; margin-bottom:1rem;" />
       <button id="loginButton">Login</button>
       <div id="loginStatus" style="margin-top:1rem;"></div>
     </div>
 
-    <!-- Signup Section -->
-  <div id="signupSection" class="card" style="display:none;">
-    <h2>Sign Up</h2>
-    <p class="muted">Create a new account</p>
-
-    <input id="signupUsername" placeholder="Username" style="width:100%; padding:0.6rem; margin-bottom:1rem;" />
-    <input id="signupPassword" placeholder="Password" type="password" style="width:100%; padding:0.6rem; margin-bottom:1rem;" />
-    <button id="signupButton">Sign Up</button>
-    <div id="signupStatus" style="margin-top:1rem;"></div>
-  </div>
-
+    <div id="signupSection" class="card" style="display:none;">
+      <h2>Sign Up</h2>
+      <p class="muted">Create a new account</p>
+      <input id="signupUsername" placeholder="Username" style="width:100%; padding:0.6rem; margin-bottom:1rem;" />
+      <input id="signupPassword" placeholder="Password" type="password" style="width:100%; padding:0.6rem; margin-bottom:1rem;" />
+      <button id="signupButton">Sign Up</button>
+      <div id="signupStatus" style="margin-top:1rem;"></div>
+    </div>
 
   </div>
 
   <script>
-   const uploadSection = document.getElementById('uploadSection');
-  const historySection = document.getElementById('historySection');
-  const loginSection = document.getElementById('loginSection');
-  const signupSection = document.getElementById('signupSection');
+    // --- 1. GLOBAL VARIABLES (Including Dashboard) ---
+    const uploadSection = document.getElementById('uploadSection');
+    const historySection = document.getElementById('historySection');
+    const loginSection = document.getElementById('loginSection');
+    const signupSection = document.getElementById('signupSection');
+    const dashboardSection = document.getElementById('dashboardSection'); // Declared here now
 
-  function show(section) {
-    uploadSection.style.display = 'none';
-    historySection.style.display = 'none';
-    loginSection.style.display = 'none';
-    signupSection.style.display = 'none';
-    section.style.display = 'block';
-  }
-
-  document.getElementById('navUpload').onclick = () => show(uploadSection);
-  document.getElementById('navHistory').onclick = () => show(historySection);
-  document.getElementById('navLogin').onclick = () => show(loginSection);
-  document.getElementById('navSignup').onclick = () => show(signupSection);
-
-  // =========================
-  // THEME SWITCH
-  // =========================
-  const themeToggle = document.getElementById('themeToggle');
-  const body = document.body;
-  themeToggle.addEventListener('click', () => {
-    const cur = body.getAttribute('data-theme');
-    const next = cur === 'light' ? 'dark' : 'light';
-    body.setAttribute('data-theme', next);
-    themeToggle.textContent = next === 'light' ? 'Dark Mode' : 'Light Mode';
-  });
-
-
-  //login stuff
-  const AUTH_API = 'https://9qjpd4xue2.us-east-1.awsapprunner.com';
-  let authToken = null;
-
-  // =========================
-  // SIGNUP / LOGIN FUNCTIONS
-  // =========================
-document.getElementById('signupButton').onclick = async () => {
-  const username = document.getElementById('signupUsername').value;
-  const password = document.getElementById('signupPassword').value;
-  const statusDiv = document.getElementById('signupStatus');
-  statusDiv.innerHTML = 'Signing up...';
-
-  try {
-    const res = await fetch(`${AUTH_API}/signup`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
-    });
-
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message);
-
-    document.getElementById('signupStatus').innerHTML = 'Signup successful! You can now login.';
-  } catch (err) {
-    document.getElementById('signupStatus').innerHTML = `Error: ${err.message}`;
-  }
-};
-
-  async function signup(username, password) {
-    const res = await fetch(`${AUTH_API}/signup`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message);
-    return data;
-  }
-
-  async function login(username, password) {
-    const res = await fetch(`${AUTH_API}/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message);
-    authToken = data.token; // store JWT
-    return data;
-  }
-
-  // =========================
-  // LOGIN BUTTON HANDLER
-  // =========================
-  document.getElementById('loginButton').onclick = async () => {
-    const username = document.getElementById('username').value;
-    const password = document.getElementById('password').value;
-
-    document.getElementById('loginStatus').innerHTML = 'Logging in...';
-
-    try {
-      await login(username, password);
-      document.getElementById('loginStatus').innerHTML = 'Login successful';
-    } catch (err) {
-      document.getElementById('loginStatus').innerHTML = `Error: ${err.message}`;
+    // --- 2. UPDATED SHOW FUNCTION ---
+    function show(section) {
+      uploadSection.style.display = 'none';
+      historySection.style.display = 'none';
+      loginSection.style.display = 'none';
+      signupSection.style.display = 'none';
+      dashboardSection.style.display = 'none'; // Ensure dashboard hides when switching
+      section.style.display = 'block';
     }
-  };
 
-  // =========================
-  // HISTORY FETCH
-  // =========================
-  document.getElementById('refreshHistory').onclick = async () => {
-    const list = document.getElementById('historyList');
-    // Placeholder: will eventually call backend for user history
-    list.innerHTML = '<li>Sample-upload-1.pdf</li><li>Sample-image-2.jpg</li>';
-  };
+    document.getElementById('navUpload').onclick = () => show(uploadSection);
+    document.getElementById('navHistory').onclick = () => show(historySection);
+    document.getElementById('navLogin').onclick = () => show(loginSection);
+    document.getElementById('navSignup').onclick = () => show(signupSection);
 
+    // THEME SWITCH
+    const themeToggle = document.getElementById('themeToggle');
+    const body = document.body;
+    themeToggle.addEventListener('click', () => {
+      const cur = body.getAttribute('data-theme');
+      const next = cur === 'light' ? 'dark' : 'light';
+      body.setAttribute('data-theme', next);
+      themeToggle.textContent = next === 'light' ? 'Dark Mode' : 'Light Mode';
+    });
 
+    // AUTHENTICATION LOGIC
+    const AUTH_API = 'https://9qjpd4xue2.us-east-1.awsapprunner.com';
+    let authToken = null;
 
+    document.getElementById('signupButton').onclick = async () => {
+      const username = document.getElementById('signupUsername').value;
+      const password = document.getElementById('signupPassword').value;
+      const statusDiv = document.getElementById('signupStatus');
+      statusDiv.innerHTML = 'Signing up...';
 
+      try {
+        const res = await fetch(`${AUTH_API}/signup`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message);
+        document.getElementById('signupStatus').innerHTML = 'Signup successful! You can now login.';
+      } catch (err) {
+        document.getElementById('signupStatus').innerHTML = `Error: ${err.message}`;
+      }
+    };
 
+    async function login(username, password) {
+      const res = await fetch(`${AUTH_API}/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+      authToken = data.token;
+      return data;
+    }
 
-    // core functionality here, unchanged since prototype ver 1
+    document.getElementById('loginButton').onclick = async () => {
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      document.getElementById('loginStatus').innerHTML = 'Logging in...';
+      try {
+        await login(username, password);
+        document.getElementById('loginStatus').innerHTML = 'Login successful';
+      } catch (err) {
+        document.getElementById('loginStatus').innerHTML = `Error: ${err.message}`;
+      }
+    };
+
+    document.getElementById('refreshHistory').onclick = async () => {
+      const list = document.getElementById('historyList');
+      list.innerHTML = '<li>Sample-upload-1.pdf</li><li>Sample-image-2.jpg</li>';
+    };
+
+    // BULK UPLOAD LOGIC
     const API_ENDPOINT = 'https://inf2006-proxy-server.onrender.com/api/generate-upload-url';
 
     const form = document.getElementById('uploadForm');
@@ -315,11 +287,11 @@ document.getElementById('signupButton').onclick = async () => {
     const resultDiv = document.getElementById('result');
     const loader = document.getElementById('loader');
 
-    // core functionality eventlistener, read file input
+    // Only previews the FIRST image selected (simplification for UI)
     fileInput.addEventListener('change', (e) => {
-      const f = e.target.files[0];
-      if (!f) return;
-
+      const files = e.target.files;
+      if (files.length === 0) return;
+      const f = files[0];
       if (f.type.startsWith('image/')) {
         const url = URL.createObjectURL(f);
         preview.src = url;
@@ -329,50 +301,91 @@ document.getElementById('signupButton').onclick = async () => {
       }
     });
 
-    // validation checks and submits file 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
 
-      const file = fileInput.files[0];
-      if (!file) return alert('Choose a file first');
+      const files = fileInput.files; 
+      if (files.length === 0) return alert('Choose at least one file');
 
       loader.style.display = 'inline';
-      resultDiv.innerHTML = '<pre>1. Requesting upload link from server...</pre>';
+      resultDiv.innerHTML = ''; 
+      
+      let successCount = 0;
+      let errorCount = 0;
 
-      try {
-        const contentType = encodeURIComponent(file.type);
+      // Loop through every selected file for batch upload
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const fileNum = i + 1;
+        
+        const statusLine = document.createElement('div');
+        statusLine.className = 'status-line';
+        statusLine.innerHTML = `<small>File ${fileNum}/${files.length} (${file.name}): Requesting link...</small>`;
+        resultDiv.appendChild(statusLine);
 
-        // calling secure proxy instead of AWS directly
-        const getUrlResponse = await fetch(`${API_ENDPOINT}?contentType=${contentType}`);
+        try {
+          const contentType = encodeURIComponent(file.type);
+          const getUrlResponse = await fetch(`${API_ENDPOINT}?contentType=${contentType}`);
+          if (!getUrlResponse.ok) {
+             const msg = await getUrlResponse.text();
+             throw new Error(`Upload URL failed. ${msg}`);
+          }
+          const { uploadURL } = await getUrlResponse.json();
+          
+          statusLine.innerHTML = `<small>File ${fileNum}/${files.length} (${file.name}): Uploading to S3...</small>`;
 
-        //if error, prompts upload failed with the status msg
-        if (!getUrlResponse.ok) {
-          const msg = await getUrlResponse.text();
-          throw new Error(`Upload URL failed. Status: ${getUrlResponse.status}. ${msg}`);
+          const uploadResponse = await fetch(uploadURL, {
+            method: 'PUT',
+            body: file,
+            headers: { 'Content-Type': file.type }
+          });
+
+          if (!uploadResponse.ok) throw new Error('S3 upload failed');
+
+          statusLine.innerHTML = `<span style="color:green; font-weight:bold;">✔ ${file.name} uploaded!</span>`;
+          successCount++;
+
+        } catch (err) {
+          console.error(err);
+          statusLine.innerHTML = `<span style="color:red; font-weight:bold;">✘ ${file.name} failed: ${err.message}</span>`;
+          errorCount++;
         }
-
-        // retrieves link of S3 bucket
-        const { uploadURL } = await getUrlResponse.json();
-        resultDiv.innerHTML += '<pre>2. Upload link received. Uploading to S3...</pre>';
-
-        // using HTTP put method to create/update data
-        const uploadResponse = await fetch(uploadURL, {
-          method: 'PUT',
-          body: file,
-          headers: { 'Content-Type': file.type }
-        });
-
-        // if error prompts, inform user
-        if (!uploadResponse.ok) throw new Error('Upload failure.');
-
-        loader.style.display = 'none';
-        resultDiv.innerHTML += '<pre style="color:green;font-weight:bold;">3. Upload complete! Processing triggered.</pre>';
-
-      } catch (err) {
-        loader.style.display = 'none';
-        resultDiv.innerHTML = `<pre style="color:red;">Error: ${err.message}</pre>`;
       }
+
+      loader.style.display = 'none';
+      
+      const summary = document.createElement('div');
+      summary.className = 'status-line';
+      summary.style.borderColor = successCount > 0 ? 'green' : 'red';
+      summary.innerHTML = `<strong>Batch Complete.</strong> Success: ${successCount}, Failed: ${errorCount}`;
+      resultDiv.appendChild(summary);
+      
+      // Reload dashboard to potentially show new data (simulated latency)
+      setTimeout(loadDashboard, 3000); 
     });
+
+    // LOAD DASHBOARD LOGIC
+    async function loadDashboard() {
+                
+        const chartUrl = `https://inf2006-analytics-datalake.s3.amazonaws.com/reports/spend_chart.png?timestamp=${new Date().getTime()}`;
+
+        dashboardSection.innerHTML = `
+          <h2>Analytics Dashboard</h2>
+          <p class="muted">Visualizing data processed by Apache Spark (EMR)</p>
+          <div style="text-align:center; margin-top:1rem;">
+            <img 
+               src="${chartUrl}" 
+               alt="Analytics Chart" 
+               style="max-width:100%; border-radius:var(--radius); box-shadow:0 4px 6px rgba(0,0,0,0.1); border:1px solid var(--border);"
+               onerror="this.style.display='none'; this.parentElement.innerHTML+='<p style=\'color:red\'>Chart not found. Run the Spark job on EMR to generate it, and ensure the S3 object is public.</p>'"
+            />
+          </div>
+        `;
+        dashboardSection.style.display = 'block';
+    }
+
+    // Attempt to load dashboard on page start
+    window.addEventListener('DOMContentLoaded', loadDashboard);
 
   </script>
 </body>

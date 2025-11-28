@@ -8,9 +8,7 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// =========================
 // DATABASE CONNECTION
-// =========================
 const db = await mysql.createPool({
   host: "inf2006proj.c2recquoobti.us-east-1.rds.amazonaws.com",
   user: "admin",
@@ -18,9 +16,7 @@ const db = await mysql.createPool({
   database: "users"
 });
 
-// =========================
 // DROP & CREATE TABLE (DEV ONLY)
-// =========================
 await db.execute(`DROP TABLE IF EXISTS users`);
 
 await db.execute(`
@@ -33,9 +29,7 @@ CREATE TABLE users (
 
 console.log("Database ready: 'users' table created");
 
-// =========================
 // SIGNUP
-// =========================
 app.post("/signup", async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) return res.status(400).json({ message: "Missing username or password" });
@@ -60,9 +54,7 @@ app.post("/signup", async (req, res) => {
   }
 });
 
-// =========================
 // LOGIN
-// =========================
 app.post("/login", async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) return res.status(400).json({ message: "Missing username or password" });
@@ -93,7 +85,5 @@ app.post("/login", async (req, res) => {
   }
 });
 
-// =========================
 // START SERVER
-// =========================
 app.listen(3000, () => console.log("Server running on port 3000"));

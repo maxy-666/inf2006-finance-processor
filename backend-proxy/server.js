@@ -1,4 +1,4 @@
-// Import required packages
+// backend-proxy/server.js
 const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
@@ -15,36 +15,61 @@ app.use(cors());
 app.use(express.json());
 
 
-// --- API Proxy Route ---
-// This is the endpoint your frontend will call.
+// --- ROUTE 1: Generate Upload URL (Existing) ---
 app.get('/api/generate-upload-url', async (req, res) => {
   try {
-    // 1. Get the actual, secret AWS API Gateway URL from environment variables
     const awsApiUrl = process.env.API_GATEWAY_URL;
 
     if (!awsApiUrl) {
-      // If the secret URL is not set, return a server error
+      console.error("API_GATEWAY_URL is missing in .env");
       return res.status(500).json({ error: 'API endpoint URL is not configured on the server.' });
     }
     
-    // 2. Forward the 'contentType' query parameter from the original request
     const contentType = req.query.contentType;
     if (!contentType) {
         return res.status(400).json({ error: 'contentType query parameter is required.' });
     }
 
-    // 3. Make a request from THIS server to the AWS API Gateway.
-    // This happens on the server, so the URL is never exposed to the public.
-    console.log(`Forwarding request to: ${awsApiUrl}?contentType=${contentType}`);
+    console.log(`Forwarding upload request to AWS...`);
     const response = await axios.get(`${awsApiUrl}?contentType=${contentType}`);
 
-    // 4. Send the response from AWS back to the frontend
     res.status(200).json(response.data);
 
   } catch (error) {
-    // Basic error handling
-    console.error('Error proxying request:', error.message);
-    res.status(500).json({ error: 'Failed to fetch data from the upstream service.' });
+    console.error('Error proxying upload request:', error.message);
+    
+    // Robust Error Handling: Pass upstream AWS errors back to frontend
+    const msg = error.response && error.response.data ? JSON.stringify(error.response.data) : error.message;
+    res.status(500).json({ error: `Failed to fetch upload URL: ${msg}` });
+  }
+});
+
+
+// --- ROUTE 2: Get Dashboard Embed URL (New) ---
+app.get('/api/get-dashboard-url', async (req, res) => {
+  try {
+    // 1. Get the Dashboard API URL from environment variables
+    const dashboardApiUrl = process.env.DASHBOARD_API_URL;
+
+    if (!dashboardApiUrl) {
+      console.error("DASHBOARD_API_URL is missing in .env");
+      return res.status(500).json({ error: 'Dashboard API URL is not configured on server.' });
+    }
+
+    console.log(`Forwarding dashboard request to: ${dashboardApiUrl}`);
+    
+    // 2. Call the AWS API Gateway (which calls your Lambda)
+    const response = await axios.get(dashboardApiUrl);
+
+    // 3. Send the result (Embed URL) back to the frontend
+    res.status(200).json(response.data);
+
+  } catch (error) {
+    console.error('Error fetching dashboard URL:', error.message);
+    
+    // Robust Error Handling: Pass upstream AWS errors back to frontend
+    const msg = error.response && error.response.data ? JSON.stringify(error.response.data) : error.message;
+    res.status(500).json({ error: `Failed to get dashboard URL: ${msg}` });
   }
 });
 

@@ -23,10 +23,6 @@ resource "aws_apigatewayv2_route" "get_upload_url" {
   target    = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
 }
 
-# --- THIS SECTION IS UPDATED ---
-
-# Create an explicit deployment. The triggers ensure that a new deployment
-# happens every time the route changes.
 resource "aws_apigatewayv2_deployment" "api_deployment" {
   api_id = aws_apigatewayv2_api.http_api.id
 
@@ -41,14 +37,12 @@ resource "aws_apigatewayv2_deployment" "api_deployment" {
   }
 }
 
-# The stage now points to the explicit deployment and has auto-deploy disabled.
 resource "aws_apigatewayv2_stage" "default" {
   api_id        = aws_apigatewayv2_api.http_api.id
   name          = "$default"
   auto_deploy   = false # Disabled in favor of explicit deployment
   deployment_id = aws_apigatewayv2_deployment.api_deployment.id
 }
-# --------------------------------
 
 resource "aws_lambda_permission" "api_gateway_permission" {
   statement_id  = "AllowAPIGatewayToInvokeLambda"
