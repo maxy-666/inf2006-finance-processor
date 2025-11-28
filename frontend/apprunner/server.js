@@ -14,7 +14,7 @@ app.use(cors());
 const db = await mysql.createPool({
   host: "inf2006proj.c2recquoobti.us-east-1.rds.amazonaws.com",
   user: "admin",
-  password: "INF2006Year2Tri1",
+  password: "",
   database: "users"
 });
 
