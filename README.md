@@ -1,23 +1,195 @@
-# INF2006 Project: Cloud-Native Financial Document Processor (AIaaS)
 
-## 🎯 Project Overview
-This project is an **AI-as-a-Service (AIaaS)** platform designed to automate and digitise financial functions. It will process uploaded documents (invoices, receipts) by using a multi-stage machine learning pipeline to perform OCR, layout analysis, entity extraction, validation, and auto-categorisation.
+INF2006 Project – Cloud-Native Financial Document Processor (AIaaS)
 
-Our goal is to create a robust, scalable, and secure system that demonstrates competency in:
-* **Cloud Architecture & IaC**: Fully automated, reproducible deployment on AWS.
-* **Big Data Analytics**: Processing a large corpus of documents and leveraging structured/unstructured data.
-* **AI-as-a-Service**: Integrating and orchestrating multiple advanced ML models for a practical business solution.
+A cloud-native AI-as-a-Service (AIaaS) platform that automates financial document processing (invoices, receipts) through a multi-stage machine learning pipeline. The system performs OCR, entity extraction, validation, auto-categorisation, and Big Data analytics. All infrastructure is deployed using Terraform, and data analytics are powered by Apache Spark on EMR.
 
-## ⚙️ Proposed Architecture (Mid-Term PoC)
-The initial Proof-of-Concept (PoC) focuses on establishing the secure, serverless ingest pipeline:
+Features
+Cloud-Native Architecture
 
-1.  **Client/UI**: Uploads the document via a secure endpoint.
-2.  **API Gateway**: Acts as the single entry point.
-3.  **AWS Lambda**: Triggers the first stage of processing.
-4.  **Amazon S3**: Stores the raw document securely.
-5.  **AWS Textract**: Performs the initial Optical Character Recognition (OCR).
+Fully serverless ingestion pipeline (API Gateway, Lambda, Step Functions, EventBridge)
 
-*(***Future Note:*** We will update this section with the Architecture Diagram once the PoC is deployed and link to the full Technical Report.)*
+Robust workflow control with retry logic and fault tolerance
+
+AI Document Processing
+
+OCR via Amazon Textract
+
+Entity extraction using a custom LayoutLM model on SageMaker
+
+Extracted results stored in DynamoDB
+
+Big Data Lakehouse
+
+Decoupled storage and compute using Amazon S3 and EMR
+
+Data Lake built with JSON Lines, Parquet, and Delta optimisation
+
+Analytics and Machine Learning
+
+Batch ETL processing with Apache Spark
+
+Spend aggregation and category analytics
+
+Random Forest model for category prediction using Spark MLlib
+
+Automated chart generation (Matplotlib)
+
+Interactive dashboards using Amazon QuickSight with Athena
+
+Infrastructure as Code
+
+Entire system deployed through Terraform
+
+Architecture Overview
+1. Operational Pipeline (Real-Time)
+
+Handles incoming financial documents and performs immediate extraction.
+
+Flow:
+API Gateway → S3 (Presigned Upload) → Step Functions → Textract → LayoutLM (SageMaker) → DynamoDB
+
+Components:
+
+API Gateway for secure presigned uploads
+
+Lambda for orchestration logic
+
+Step Functions to coordinate OCR and extraction
+
+Textract for high-accuracy OCR
+
+Custom LayoutLM model on SageMaker
+
+DynamoDB to store processing results
+
+2. Analytics Pipeline (Batch Big Data)
+
+Processes historical data and enables analytics and ML training.
+
+Flow:
+DynamoDB Streams → Lambda ETL → S3 Data Lake → EMR Spark → Athena → QuickSight
+
+Components:
+
+DynamoDB Streams for change data capture
+
+Lambda to ingest raw documents into S3
+
+S3 as a scalable Data Lake (partitioned storage)
+
+Apache Spark jobs for ETL, aggregation, and machine learning
+
+Athena + QuickSight for business intelligence
+
+Technology Stack
+Category	Technology	Purpose
+Cloud Provider	AWS	Infrastructure and managed services
+IaC	Terraform	Provisioning and configuration
+Orchestration	Step Functions, Lambda, SQS	Workflow and serverless compute
+AI/ML	Textract, SageMaker, Spark MLlib	OCR, entity extraction, model training
+Big Data	Apache Spark (PySpark)	ETL, analytics, ML
+Frontend	HTML/JavaScript with Node.js proxy	UI and secure API communication
+Deployment Guide
+Prerequisites
+
+AWS CLI configured with Administrator permissions
+
+Terraform v1.0+
+
+Node.js v16+
+
+Python 3.9
+
+Phase 1: Deploy Infrastructure (Terraform)
+cd backend-iac
+terraform init
+terraform apply -auto-approve
+
+
+Record the generated Terraform output values:
+
+API Gateway base URL
+
+Document Upload S3 Bucket name
+
+Analytics Data Lake S3 Bucket name
+
+Phase 2: Post-Deployment Configuration
+1. Upload Spark Scripts to S3
+
+Replace [DOCS_BUCKET_NAME] accordingly.
+
+aws s3 cp ../backend-spark/batch_analytics_safe.py s3://[DOCS_BUCKET_NAME]/scripts/
+aws s3 cp ../backend-spark/spark_ml_analytics.py s3://[DOCS_BUCKET_NAME]/scripts/
+
+2. Configure Backend Proxy (Node.js)
+cd ../backend-proxy
+
+
+Create .env:
+
+PORT=3000
+API_GATEWAY_URL=https://[API_ID].execute-api.us-east-1.amazonaws.com/generate-upload-url
+DASHBOARD_API_URL=https://[API_ID].execute-api.us-east-1.amazonaws.com/get-dashboard-url
+
+
+Start the server:
+
+npm install
+node server.js
+
+3. Set Up QuickSight Dashboard
+
+Run AWS Glue Crawler: inf2006-analytics-crawler
+
+In QuickSight, create a dataset using Athena
+
+Select database inf2006_analytics_db
+
+Select table category_summary_v3
+
+Build a visual (bar chart) and publish as a dashboard
+
+If needed, update the Dashboard ID in Lambda environment variables
+
+Running the Pipelines
+1. Ingestion (Upload Documents)
+
+Open:
+
+frontend/index.html
+
+
+Upload receipts or invoices.
+
+Verify execution in AWS Step Functions:
+OCR → Entity Extraction → Database Save
+
+2. Run Big Data Analytics Job (EMR)
+
+SSH into EMR:
+
+ssh -i path/to/project-key.pem hadoop@ec2-xx-xx-xx.compute-1.amazonaws.com
+
+
+Run ETL:
+
+spark-submit s3://[DOCS_BUCKET_NAME]/scripts/batch_analytics_safe.py
+
+3. Machine Learning (Training)
+spark-submit s3://[DOCS_BUCKET_NAME]/scripts/spark_ml_analytics.py
+
+
+Expected output example:
+
+Accuracy: 0.96
+
+4. Visualisation
+
+Static chart generated by Spark will appear in the frontend
+
+Interactive QuickSight dashboard loads via the backend proxy
+
 
 ## 🛠️ Technology Stack
 | Category | Technology | Purpose |
